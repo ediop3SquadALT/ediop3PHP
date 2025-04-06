@@ -86,7 +86,7 @@ scan_vulnerabilities() {
         if [[ "$response" == "200" || "$response" == "302" || "$response" == "500" ]]; then
             if [[ ! " ${vulnerabilities_found[@]} " =~ " $payload " ]]; then
                 vulnerabilities_found+=("$payload")
-                echo "[+] Vulnerability found: $payload"
+                echo "[+] Vulnerability found: $payload on page $target?id=$payload"
             fi
         fi
     done
@@ -124,4 +124,3 @@ main() {
 }
 
 main "$@"
-
