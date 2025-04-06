@@ -17,62 +17,51 @@ echo ""
 
 # Declare visited URLs to avoid re-checking the same ones
 visited_urls=()
+vulnerabilities_found=()
 
 # Function to check for Google Dork results
 check_google_dork() {
     google_url="https://www.google.com/search?q=site:$target"
     google_response=$(curl -s "$google_url")
-    if [[ "$google_response" =~ "No results" ]]; then
-        return
-    else
-        clean_response=$(echo "$google_response" | sed 's/<[^>]*>//g' | sed 's/&[^;]*;//g')  # Remove HTML tags and entities
-        urls=$(echo "$clean_response" | grep -oP 'https?://\S+' 2>/dev/null)  # Extract URLs only
-        for url in $urls; do
-            # If URL has not been visited yet
-            if [[ ! " ${visited_urls[@]} " =~ " $url " ]]; then
-                visited_urls+=("$url")
-                echo "$url"
-            fi
-        done
-    fi
+    clean_response=$(echo "$google_response" | sed 's/<[^>]*>//g' | sed 's/&[^;]*;//g')  # Remove HTML tags and entities
+    urls=$(echo "$clean_response" | grep -oP 'https?://\S+' 2>/dev/null)  # Extract URLs only
+    for url in $urls; do
+        # If URL has not been visited yet
+        if [[ ! " ${visited_urls[@]} " =~ " $url " ]]; then
+            visited_urls+=("$url")
+            echo "Google Dork found URL: $url"
+        fi
+    done
 }
 
 # Function to check FOFA search results
 check_fofa() {
     fofa_url="https://fofa.info/search?q=$target"
     fofa_response=$(curl -s "$fofa_url")
-    if [[ "$fofa_response" =~ "No results" ]]; then
-        return
-    else
-        clean_response=$(echo "$fofa_response" | sed 's/<[^>]*>//g' | sed 's/&[^;]*;//g')  # Remove HTML tags and entities
-        urls=$(echo "$clean_response" | grep -oP 'https?://\S+' 2>/dev/null)  # Extract URLs only
-        for url in $urls; do
-            # If URL has not been visited yet
-            if [[ ! " ${visited_urls[@]} " =~ " $url " ]]; then
-                visited_urls+=("$url")
-                echo "$url"
-            fi
-        done
-    fi
+    clean_response=$(echo "$fofa_response" | sed 's/<[^>]*>//g' | sed 's/&[^;]*;//g')  # Remove HTML tags and entities
+    urls=$(echo "$clean_response" | grep -oP 'https?://\S+' 2>/dev/null)  # Extract URLs only
+    for url in $urls; do
+        # If URL has not been visited yet
+        if [[ ! " ${visited_urls[@]} " =~ " $url " ]]; then
+            visited_urls+=("$url")
+            echo "FOFA found URL: $url"
+        fi
+    done
 }
 
 # Function to check Shodan search results
 check_shodan() {
     shodan_url="https://www.shodan.io/search?query=$target"
     shodan_response=$(curl -s "$shodan_url")
-    if [[ "$shodan_response" =~ "No results" ]]; then
-        return
-    else
-        clean_response=$(echo "$shodan_response" | sed 's/<[^>]*>//g' | sed 's/&[^;]*;//g')  # Remove HTML tags and entities
-        urls=$(echo "$clean_response" | grep -oP 'https?://\S+' 2>/dev/null)  # Extract URLs only
-        for url in $urls; do
-            # If URL has not been visited yet
-            if [[ ! " ${visited_urls[@]} " =~ " $url " ]]; then
-                visited_urls+=("$url")
-                echo "$url"
-            fi
-        done
-    fi
+    clean_response=$(echo "$shodan_response" | sed 's/<[^>]*>//g' | sed 's/&[^;]*;//g')  # Remove HTML tags and entities
+    urls=$(echo "$clean_response" | grep -oP 'https?://\S+' 2>/dev/null)  # Extract URLs only
+    for url in $urls; do
+        # If URL has not been visited yet
+        if [[ ! " ${visited_urls[@]} " =~ " $url " ]]; then
+            visited_urls+=("$url")
+            echo "Shodan found URL: $url"
+        fi
+    done
 }
 
 # Function to check for WAF/Firewall detection
@@ -92,24 +81,14 @@ check_firewall() {
 # Function to scan for vulnerabilities (example function)
 scan_vulnerabilities() {
     payloads=($(cat payloads1219.txt))
-    accessed_dirs=()
     for payload in "${payloads[@]}"; do
         response=$(curl -X GET "$target?id=$payload" -s -o /dev/null -w "%{http_code}")
         if [[ "$response" == "200" || "$response" == "302" || "$response" == "500" ]]; then
-            echo "[+] Potential vulnerability found on $target with payload: $payload" | tee -a results.txt
-            return
-        fi
-
-        for dir in "/etc/passwd" "/etc/shadow" "/var/www" "/root" "/home"; do
-            if [[ ! " ${accessed_dirs[@]} " =~ " ${dir} " ]]; then
-                response=$(curl -X GET "$target?id=../../../../$dir" -s -o /dev/null -w "%{http_code}")
-                if [[ "$response" == "200" ]]; then
-                    echo "[+] Path Traversal vulnerability found accessing $dir" | tee -a results.txt
-                    accessed_dirs+=("$dir")
-                    return
-                fi
+            if [[ ! " ${vulnerabilities_found[@]} " =~ " $payload " ]]; then
+                vulnerabilities_found+=("$payload")
+                echo "[+] Vulnerability found: $payload"
             fi
-        done
+        fi
     done
 }
 
@@ -130,16 +109,19 @@ main() {
 
     # Continuous scanning loop
     while true; do
-        check_firewall
-        scan_vulnerabilities
-        check_google_dork
-        check_fofa
-        check_shodan
+        check_firewall &
+        scan_vulnerabilities &
+        check_google_dork &
+        check_fofa &
+        check_shodan &
 
-        # Pause for 5 seconds before repeating the scan
-        echo "[+] Scanning again in 5 seconds..."
-        sleep 5
+        wait  # Wait for all background processes to finish
+
+        # Pause for 1 second before repeating the scan
+        echo "[+] Scanning again in 1 second..."
+        sleep 1  # Changed from 5 seconds to 1 second
     done
 }
 
 main "$@"
+
