@@ -27,7 +27,7 @@ check_google_dork() {
 }
 
 check_fofa() {
-    fofa_url="https://fofa.so/search?q=$target"
+    fofa_url="https://fofa.info/search?q=$target"
     fofa_response=$(curl -s "$fofa_url")
     if [[ "$fofa_response" =~ "No results" ]]; then
         echo "[-] No results found in Fofa search."
