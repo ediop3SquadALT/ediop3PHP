@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Display banner
 echo "███████╗██████╗░██╗░█████╗░██████╗░██████╗░"
 echo "██╔════╝██╔══██╗██║██╔══██╗██╔══██╗╚════██╗"
 echo "█████╗░░██║░░██║██║██║░░██║██████╔╝░█████╔╝"
@@ -16,23 +15,20 @@ echo "██║░░░░░██║░░██║██║░░░░░"
 echo "╚═╝░░░░░╚═╝░░╚═╝╚═╝░░░░░"
 echo ""
 
-# Configuration
 PAYLOAD_FILE="payloads1219.txt"
 USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
-# Check if payload file exists
 if [ ! -f "$PAYLOAD_FILE" ]; then
     echo "[-] Error: Payload file $PAYLOAD_FILE not found!"
     exit 1
 fi
 
-# Function to scan a single URL for vulnerabilities
 scan_url() {
     local url=$1
     echo "[*] Scanning URL: $url"
     
     while IFS= read -r payload; do
-        # Skip empty lines
+        # ok
         [ -z "$payload" ] && continue
         
         echo "[*] Testing payload: $payload"
@@ -44,7 +40,6 @@ scan_url() {
     done < "$PAYLOAD_FILE"
 }
 
-# Function to check for WAF/Firewall detection
 check_firewall() {
     echo "[*] Checking WAF/Firewall for $1"
     response=$(curl -I -s -k -A "$USER_AGENT" "$1")
@@ -65,16 +60,14 @@ check_firewall() {
     fi
 }
 
-# Main function
 main() {
-    # Check if URL parameter is provided
     if [ $# -eq 0 ]; then
         echo "Usage: $0 -u <URL>"
         echo "Example: $0 -u https://testphp.vulnweb.com"
         exit 1
     fi
 
-    # Parse arguments
+    # lol
     while getopts ":u:" opt; do
         case $opt in
             u) target="$OPTARG" ;;
@@ -82,7 +75,7 @@ main() {
         esac
     done
 
-    # Verify target URL
+    # Vlol
     if [ -z "$target" ]; then
         echo "[-] Error: No target URL specified"
         exit 1
@@ -90,14 +83,11 @@ main() {
 
     echo "[*] Starting scan against: $target"
     
-    # First check for WAF
     check_firewall "$target"
     
-    # Then scan for vulnerabilities
     scan_url "$target"
     
     echo "[*] Initial scan completed"
 }
 
-# Run the script
 main "$@"
